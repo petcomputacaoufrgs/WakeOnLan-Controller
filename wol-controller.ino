@@ -10,19 +10,9 @@
 
 */
 
-#include <SD.h>
-#include <Ethernet.h>
+#include "wol-controller.h"
 
-#define MAX_CONNECTED_PCS 16
-
-// Informações de cada PC conectado
-// typedef struct pcInfo{
-//     char hostname[] = "VERSAO BETA";
-//     char mac_str[] = "VERSAO BETA";
-//     char ip_str[] = "VERSAO BETA";
-// } pcInfo;
-
-//pcInfo pcInfoArray[MAX_CONNECTED_PCS];
+macAddr macAddrArray[MAX_CONNECTED_PCS];
 uint8_t managedPCs = 0;
 
 byte mac[] = {
@@ -32,56 +22,28 @@ byte mac[] = {
 // Ouvindo por https
 EthernetServer server(80);
 
-// Arquivo no cartão SD onde são armazenados hostname, mac, ip
 
-bool SDInitialized = false;
+
+// bool SDInitialized = false;
 
 void setup()
 {
     // Inicialização do Serial
     Serial.begin(9600);
 
-    // disable the ethernet SPI
-    pinMode(10, OUTPUT);
-    digitalWrite(10,HIGH);
-
-    // Inicialização cartão SD
-    Serial.println("Initializing SD card...");
-    if(!SD.begin(4)){
-        Serial.println("Failed SD initialization");
-        Serial.println("The controller will not be storing PC info. DO NOT TURN OFF THE BOARD!");
-    }
-    else{
-        SDInitialized = true;
-    }
-
     // Inicialização Ethernet
 
-    Serial.println("Initializing Ethernet with DHCP...");
-
-
     if (Ethernet.begin(mac) == 0) {
-        Serial.println("Failed to configure Ethernet using DHCP");
-        // Checagem de problemas
-
-        // Shield presente?
-        if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-            Serial.println("Ethernet shield was not found.  Sorry, can't run without hardware. :(");
-            while (true); // Idle
-        }
-        // Cabo conectado?
-        if (Ethernet.linkStatus() == LinkOFF) {
-            Serial.println("Ethernet cable is not connected.");
-        }
+        Serial.println("Falha na obtenção de IP DHCP");
+        while (true); // Idle
     }
     else{
-        Serial.print("My DHCP IP: ");
+        Serial.print("Meu IP DHCP: ");
         Serial.println(Ethernet.localIP());
     }
-
+    
     // Espera inicialização do shield
     delay(1000);
-
 
 
 }
@@ -90,31 +52,27 @@ void loop(){
     // Esperando cliente
     EthernetClient client = server.available();
     if(client){
-        Serial.println("Novo Cliente");
-        boolean currentLineIsBlank = true;
-        while(client.connected()){
-            if(client.available()){
-                char c = client.read();
-                //Serial.write(c);
-                if (c == '\n' && currentLineIsBlank) {
-                    serveConnectedPCListsPage(client);
-                    break;
-                }
-                if (c == '\n') {
-                // Você está começando uma nova linha
-                currentLineIsBlank = true;
-                } 
-                else if (c != '\r') {
-                // Você recebeu um caracter na linha atual.
-                currentLineIsBlank = false;
-                }
-            }
+        // Obtém tipo de request
+        WOLControllerRequests requestType = getClientRequestProtocol(client);
+        switch (requestType)
+        {
+        case WOLControllerRequests::GET:
+            // Mostra página interface
+            serveConnectedPCListsPage(client);
+            break;
+        case WOLControllerRequests::POST:
+            // Adiciona MAC à lista
+            addMACforMonitoring(client);
+            serveConnectedPCListsPage(client);
+            break;
+        default:
+            return;
         }
+
         // Dar tempo ao navegador para receber os dados
         delay(1);
         // Fecha a conexão:
         client.stop();
-        Serial.println("Conexão encerrada");
     }
 
 
@@ -129,7 +87,7 @@ void serveConnectedPCListsPage(EthernetClient& client){
     client.println("<!DOCTYPE HTML>");
     client.println("<html>");
     client.println("<h1> Controlador WakeOnLan </h1>");
-    client.print("<p>PCs gerenciados: ");
+    client.print("<br>PCs gerenciados: ");
     client.print(managedPCs);
     client.print("/");
     client.print(MAX_CONNECTED_PCS);
@@ -137,17 +95,99 @@ void serveConnectedPCListsPage(EthernetClient& client){
     // Lista os computadores conectados
     // TO-DO: Essa lista tem que ser lida do SD
     client.print("<ol>");
+    
     for(int i=0; i < managedPCs; i++){
+        uint8_t readChars = 0;
         client.print("<li>");
-        client.print("UM HOSTNAME ");
-        client.print("UM MAC");
-        client.print("UM IP");
+        for(int j=0; j < MAC_STRING_SIZE; j++){
+            // : do MAC
+            if(readChars++ == 2){
+                client.print(':');
+                readChars = 1;
+            }
+            client.print(macAddrArray[i].addr[j]);
+        }
         client.print("</li>");
     }
     
-
     client.print("</ol>");
+    
+    // Botão para inserir MAC
+    client.print("<form action=\"\" method=\"post\">");
+    client.print("<label for=\"mac\">Insira seu endereco MAC (APENAS DÍGITOS HEXADECIMAIS)</label>");
+    client.print("<br>");
+    client.print("<input name=\"macaddr\" id=\"mac\" type=\"text\">");
+    client.print("<button>Enviar</button>");
+    client.print("</form>");
 
     client.println("</html>");
+
+}
+
+// Adiciona um MAC ao WakeOnLan
+bool addMACforMonitoring(EthernetClient& client){
+    
+    bool currentLineIsBlank = false;
+    bool readingPOSTInfo = false;
+    bool readMAC = false;
+    char addrBuffer[MAC_STRING_SIZE];
+    uint8_t POSTReadBytes = 0;
+    uint8_t macBytesRead = 0;
+    while(client.connected()){
+        if(client.available()){
+            char c = client.read();
+
+            // Lê bytes até encontrar as informações do POST
+            if(!readingPOSTInfo){
+                if (c == '\n' && currentLineIsBlank) {
+                    readingPOSTInfo = true;
+                }
+                if (c == '\n') {
+                    currentLineIsBlank = true;
+                } 
+                else if (c != '\r') {
+                    currentLineIsBlank = false;
+                }
+            }
+            // Lê bytes contendo info de post
+            else{
+                // Checa se já passou por "macaddr="
+                if(POSTReadBytes >= POST_MAC_VALUE_STRING_BYTES_TO_SKIP){
+                    // Não permite caracteres que não sejam HEX
+                    Serial.print(c);
+                    if(!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))){
+                        break;
+                    }
+
+                    // Copia para buffer
+                    addrBuffer[macBytesRead] = c;
+                    macBytesRead++;
+                }
+
+                POSTReadBytes++;
+
+                if((POSTReadBytes == POST_MAC_VALUE_SIZE)){
+                    readMAC = true;
+                }
+
+            }
+        }
+        else{
+            break;
+        }
+    }
+
+    // Checa se MAC foi lido
+    if(!readMAC){
+        return false;
+    }
+
+    // Armazena MAC e retorna verdadeiro
+    for(int i=0; i < MAC_STRING_SIZE; i++){
+        Serial.print(addrBuffer[i]);
+        macAddrArray[managedPCs].addr[i] = addrBuffer[i];
+    }
+    // Incrementa número de PCs
+    managedPCs++;
 
 }
