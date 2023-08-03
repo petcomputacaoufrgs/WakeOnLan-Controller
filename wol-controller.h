@@ -33,4 +33,16 @@ enum WOLControllerRequests {
 // Lê o request de um cliente e define se é POST ou GET
 WOLControllerRequests getClientRequestProtocol(EthernetClient& client);
 
+// Manda página HTML com as informações dos PCs conectados ao controlador
+void serveConnectedPCListsPage(EthernetClient& client);
+
+// Adiciona um MAC ao WakeOnLan
+bool addMACforMonitoring(EthernetClient& client);
+
+// Globais
+
+extern macAddr macAddrArray[MAX_CONNECTED_PCS];
+extern uint8_t managedPCs;
+
+
 #endif
