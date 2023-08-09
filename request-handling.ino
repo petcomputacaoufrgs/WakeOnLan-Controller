@@ -104,7 +104,6 @@ bool addMACforMonitoring(EthernetClient& client){
                 // Checa se já passou por "macaddr="
                 if(POSTReadBytes >= POST_MAC_VALUE_STRING_BYTES_TO_SKIP){
                     // Não permite caracteres que não sejam HEX
-                    Serial.print(c);
                     if(!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))){
                         break;
                     }
@@ -133,10 +132,12 @@ bool addMACforMonitoring(EthernetClient& client){
     }
 
     // Armazena MAC e retorna verdadeiro
+    Serial.print("Novo MAC: ");
     for(int i=0; i < MAC_STRING_SIZE; i++){
         Serial.print(addrBuffer[i]);
         macAddrArray[managedPCs].addr[i] = addrBuffer[i];
     }
+    Serial.println();
     // Incrementa número de PCs
     managedPCs++;
 
