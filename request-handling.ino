@@ -141,4 +141,6 @@ bool addMACforMonitoring(EthernetClient& client){
     // Incrementa número de PCs
     managedPCs++;
 
+    return true;
+
 }

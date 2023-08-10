@@ -22,6 +22,18 @@ char keys[ROW_NUM][COLUMN_NUM] = {
   {'*','0','#'}
 };
 
+// Sons do keypad
+typedef enum Sound {
+    SOUND_TURNON,
+    SOUND_KEY_HIT,
+    SOUND_SERVER_MODE_ON,
+    SOUND_SERVER_MODE_OFF,
+    SOUND_MAC_ADDED,
+    SOUND_WAKING_PC,
+    SOUND_CANCEL,
+    SOUND_WAKEONLAN_ON,
+} Sound;
+
 // Columns:     3  1  5
 //              45 41 49
 // Rows:        2  7  6  4
@@ -49,6 +61,15 @@ enum WOLControllerRequests {
     POST,
     UNKNOWN
 };
+
+// Modos de input do controlador
+typedef enum ControllerMode {
+    NONE,
+    WAKING,
+    SERVER,
+} ControllerMode;
+
+
 
 // Lê o request de um cliente e define se é POST ou GET
 WOLControllerRequests getClientRequestProtocol(EthernetClient& client);
