@@ -138,6 +138,11 @@ bool addMACforMonitoring(EthernetClient& client){
         macAddrArray[managedPCs].addr[i] = addrBuffer[i];
     }
     Serial.println();
+    for(int i=0, j=0; j<12; i++, j+=2){
+        macAddrArray[managedPCs].byte_addr[i] = ((char2hex(addrBuffer[j]) << 4) | char2hex(addrBuffer[j+1]));
+    }
+
+    Serial.println();
     // Incrementa número de PCs
     managedPCs++;
 

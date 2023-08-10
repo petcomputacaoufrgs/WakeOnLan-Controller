@@ -53,7 +53,7 @@ byte pin_column[COLUMN_NUM] = {27,23,31}; // connect to the column pinouts of th
 #define MAC_STRING_SIZE 12
 #define POST_MAC_VALUE_SIZE (POST_MAC_VALUE_STRING_BYTES_TO_SKIP + MAC_STRING_SIZE)
 // Endereços mac
-struct macAddr{ char addr[MAC_STRING_SIZE]; };
+struct macAddr{ char addr[12]; uint8_t byte_addr[6];};
 
 // Requests HTML com os quais o controlador lida
 enum WOLControllerRequests {
@@ -79,6 +79,15 @@ void serveConnectedPCListsPage(EthernetClient& client);
 
 // Adiciona um MAC ao WakeOnLan
 bool addMACforMonitoring(EthernetClient& client);
+
+// Acorda PC com esse id
+bool wakeUpPC(uint8_t id);
+
+// Configura um pacote mágico WOL
+void configureMagicPacket(uint8_t* mg_pkt, char* mac);
+
+// Converte caracteres para valores hexadecimais
+uint8_t char2hex(char c);
 
 // Globais
 

@@ -87,12 +87,10 @@ void loop(){
             if(key == '#'){
                 uint8_t wakingID = atoi(inputString);
                 // Tentando acordar PC não gerenciado
-                if(wakingID > managedPCs){
+                if(!wakeUpPC(wakingID)){
                     Serial.print("Nao ha PC de id ");
                     Serial.println(wakingID);
                     makeSound(SOUND_CANCEL);
-                    inputKeysPressed = 0;
-                    return;
                 }
                 else{
                     Serial.print("Acordando PC de ID ");
@@ -103,9 +101,9 @@ void loop(){
                     }
                     Serial.println();
                     makeSound(SOUND_WAKING_PC);
-                    inputKeysPressed = 0;
-                    return;
                 }
+                inputKeysPressed = 0;
+                return;
             }
             // Armazena inputs numéricos
             if(inputKeysPressed < 2){
@@ -272,4 +270,11 @@ void makeSound(Sound sound){
         break;
 
     }
+}
+
+uint8_t char2hex(char c){
+    if(c > '9'){
+        return 15 - ('F' - c);
+    }
+    return 9 - ('9' - c);
 }
