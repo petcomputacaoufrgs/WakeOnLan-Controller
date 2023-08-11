@@ -38,6 +38,9 @@ ControllerMode controllerMode = NONE;
 char inputString[3] = {' ',' ','\0'};
 uint8_t inputKeysPressed = 0;
 
+// LCD
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
+
 
 void setup()
 {
@@ -47,22 +50,37 @@ void setup()
     // Buzzer
     pinMode(audioPin, OUTPUT);
 
+    // LCD
+    lcd.begin(16, 2);
+    analogWrite(CONSTRAST_PIN, BASE_CONSTRAST);
+    lcd.setCursor(0, 0);
+    lcd.clear();
+    lcd.print("Inicializando...");
+
     // Inicialização Ethernet
 
     if (Ethernet.begin(mac) == 0) {
         Serial.println("Falha na obtenção de IP DHCP");
+        lcd.setCursor(0, 1);
+        lcd.print("Falha em obter DHCP!");
         while (true); // Idle
     }
     else{
         Serial.print("Meu IP DHCP: ");
         Serial.println(Ethernet.localIP());
     }
-    
-    // Espera inicialização do shield
-    delay(1000);
+  
+    lcd.setCursor(0, 1);
+    lcd.print("Sucesso!");
 
     // Som de inicialização
     makeSound(SOUND_TURNON);
+
+    // Espera inicialização do shield
+    delay(1000);
+
+    lcd.clear();
+
 
 
 }
@@ -80,6 +98,9 @@ void loop(){
             if(key == '*'){
                 controllerMode = NONE;
                 Serial.println("Saíndo do modo WOL");
+                
+                lcd.clear();
+                
                 makeSound(SOUND_CANCEL);
                 return;
             }
@@ -90,7 +111,12 @@ void loop(){
                 if(!wakeUpPC(wakingID)){
                     Serial.print("Nao ha PC de id ");
                     Serial.println(wakingID);
+
+                    lcd.setCursor(0, 1);
+                    lcd.print("ID N REGISTRADO");
+
                     makeSound(SOUND_CANCEL);
+
                 }
                 else{
                     Serial.print("Acordando PC de ID ");
@@ -100,6 +126,14 @@ void loop(){
                         Serial.print(macAddrArray[wakingID].addr[i]);
                     }
                     Serial.println();
+
+                    lcd.setCursor(14, 0);
+                    lcd.print("OK");
+                    lcd.setCursor(0, 1);
+                    for(int i = 0; i < MAC_STRING_SIZE; i++){
+                        lcd.print(macAddrArray[wakingID].addr[i]);
+                    }
+
                     makeSound(SOUND_WAKING_PC);
                 }
                 inputKeysPressed = 0;
@@ -107,6 +141,10 @@ void loop(){
             }
             // Armazena inputs numéricos
             if(inputKeysPressed < 2){
+                
+                lcd.setCursor(4 + inputKeysPressed, 0);
+                lcd.print(key);
+
                 inputString[inputKeysPressed] = key;
                 inputKeysPressed++;
             }
@@ -119,6 +157,7 @@ void loop(){
              if((key == '#') || (millis() - serverModeStartTime < 60000)){
                 controllerMode = NONE;
                 Serial.println("Saindo do modo servidor");
+                lcd.clear();
                 makeSound(SOUND_SERVER_MODE_OFF);
                 return;
              }
@@ -127,6 +166,9 @@ void loop(){
             // Entra no modo WakeOnLan
             if(key == '*'){
                 makeSound(SOUND_WAKEONLAN_ON);
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("WOL: ");
                 controllerMode = WAKING;
                 inputKeysPressed = 0;
             }
@@ -134,6 +176,16 @@ void loop(){
             // Entra no modo servidor por um tempo
             if(key == '#'){
                 makeSound(SOUND_SERVER_MODE_ON);
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("SERVINDO PAG. EM:");
+                lcd.setCursor(0, 1);
+                lcd.print(Ethernet.localIP());
+                // for(int i = 0; i < 12; i++){
+                //   if((i > 0) && i % 3){
+                //     lcd.print('.');
+                //   }  
+                // }
                 Serial.println("Entrando em modo servidor por 1 minuto...");
                 controllerMode = SERVER;
                 serverModeStartTime = millis();

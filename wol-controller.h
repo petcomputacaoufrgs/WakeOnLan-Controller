@@ -10,6 +10,7 @@
 #include <Ethernet.h>
 #include <EEPROM.h>
 #include <Keypad.h>
+#include <LiquidCrystal.h>
 
 // Keypad
 const int ROW_NUM    = 4; // four rows
@@ -93,6 +94,17 @@ uint8_t char2hex(char c);
 
 extern macAddr macAddrArray[MAX_CONNECTED_PCS];
 extern uint8_t managedPCs;
+
+//  LCD //
+#define RS 40
+#define EN 42
+#define D4 22
+#define D5 24
+#define D6 26
+#define D7 28
+#define CONSTRAST_PIN 6
+#define BASE_CONSTRAST 80
+
 
 
 #endif
