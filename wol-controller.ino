@@ -104,16 +104,27 @@ void loop(){
                 makeSound(SOUND_CANCEL);
                 return;
             }
-            // Pressionar # ou ter mais de uma tecla no buffer para acordar 
-            if(key == '#'){
+            // Pressionar # para acordar 
+            if((key == '#')){
+                // Faz nada se não há input
+                if(inputKeysPressed == 0){
+                  return;
+                }
+
                 uint8_t wakingID = atoi(inputString);
                 // Tentando acordar PC não gerenciado
                 if(!wakeUpPC(wakingID)){
                     Serial.print("Nao ha PC de id ");
                     Serial.println(wakingID);
 
+                    // Reseta input
+                    inputKeysPressed = 0;
+
                     lcd.setCursor(0, 1);
                     lcd.print("ID N REGISTRADO");
+
+                    lcd.setCursor(4, 0);
+                    lcd.print("  ");
 
                     makeSound(SOUND_CANCEL);
 
