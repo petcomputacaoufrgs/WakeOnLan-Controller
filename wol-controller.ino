@@ -149,6 +149,10 @@ void loop(){
                     makeSound(SOUND_WAKING_PC);
                 }
                 inputKeysPressed = 0;
+                inputString[0] = '0';
+                inputString[1] = '0';
+
+
                 return;
             }
             // Armazena inputs numéricos
