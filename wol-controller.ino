@@ -87,6 +87,7 @@ void setup()
 
 void loop(){
     static char key;
+    static bool printMenu = true; // TO-DO: Encapsular esses comportamentos do LCD em classe?
 
     key = keypad.getKey();
     if(key){
@@ -181,6 +182,7 @@ void loop(){
                 lcd.setCursor(0, 0);
                 lcd.print("WOL: ");
                 controllerMode = WAKING;
+                printMenu = true;
                 inputKeysPressed = 0;
             }
 
@@ -199,6 +201,7 @@ void loop(){
                 // }
                 Serial.println("Entrando em modo servidor por 1 minuto...");
                 controllerMode = SERVER;
+                printMenu = true;
                 serverModeStartTime = millis();
             }
         }
@@ -210,6 +213,16 @@ void loop(){
         // Se há um cliente, lida com a comunicação com ele
         if(client){
             handleClient(client);
+        }
+    }
+
+    if(controllerMode ==  NONE){
+        if(printMenu == true){
+            lcd.setCursor(0, 0);
+            lcd.print("* - WOL (id)");
+            lcd.setCursor(0, 1);
+            lcd.print("# - GER. BROWSER");
+            printMenu = false;
         }
     }
         
