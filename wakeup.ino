@@ -28,18 +28,18 @@ void configureMagicPacket(uint8_t* mg_pkt, uint8_t* mac){
     int i, j, idx;
     // 6 bytes FF
     for(idx = 0; idx < 6; idx++){
-        mg_pkt[i] = 0xFF;
-        Serial.print(0xFF, HEX);
+        mg_pkt[idx] = 0xFF;
+        // Serial.print(mg_pkt[idx], HEX);
     }
-    Serial.println();
+    // Serial.println();
     // 16 iterações do MAC
     for(i = 0; i < 16; i++){
         for(j = 0; j < 6; j++, idx++){
             mg_pkt[idx] = mac[j];
-            Serial.print(mg_pkt[idx], HEX);
-            Serial.print(" ");
+            // Serial.print(mg_pkt[idx], HEX);
+            // Serial.print(" ");
         }
-        Serial.println();
+        // Serial.println();
     }
 
 }
