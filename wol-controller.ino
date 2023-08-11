@@ -223,9 +223,10 @@ void loop(){
     if(controllerMode ==  NONE){
         if(printMenu == true){
             lcd.setCursor(0, 0);
-            lcd.print("* - WOL (id)");
+            lcd.print("* - WOL  # - GER");
             lcd.setCursor(0, 1);
-            lcd.print("# - GER. BROWSER");
+            lcd.print("PCS: ");
+            lcd.print(managedPCs);
             printMenu = false;
         }
     }
