@@ -77,7 +77,13 @@ void serveConnectedPCListsPage(EthernetClient& client){
 
 // Adiciona um MAC ao WakeOnLan
 bool addMACforMonitoring(EthernetClient& client){
-    
+
+    // Retorna se limite já foi atingido
+    if(pcStorage.getNumPCs() == MAX_PCS){
+        return false;
+    }
+
+
     bool currentLineIsBlank = false;
     bool readingPOSTInfo = false;
     bool readMAC = false;
