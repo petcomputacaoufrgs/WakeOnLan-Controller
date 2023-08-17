@@ -11,6 +11,7 @@
 #include <EEPROM.h>
 #include <Keypad.h>
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 
 // Keypad
 const int ROW_NUM    = 4; // four rows
@@ -43,8 +44,6 @@ typedef enum Sound {
 byte pin_rows[ROW_NUM] = {25,35,33,29};      // connect to the row pinouts of the keypad
 byte pin_column[COLUMN_NUM] = {27,23,31}; // connect to the column pinouts of the keypad
 
-// Limitação da memória RAM
-#define MAX_CONNECTED_PCS 4
 #define GET_REQUEST "GET"
 #define POST_REQUEST "POST"
 
@@ -90,10 +89,30 @@ void configureMagicPacket(uint8_t* mg_pkt, char* mac);
 // Converte caracteres para valores hexadecimais
 uint8_t char2hex(char c);
 
-// Globais
+// Armazenamento na EEPROM
+#define MAX_PCS 4
 
-extern macAddr macAddrArray[MAX_CONNECTED_PCS];
-extern uint8_t managedPCs;
+class PCStorage{
+
+    private:
+    uint8_t numPCs;
+    macAddr MACArray[MAX_PCS];
+
+    public:
+    void begin();
+    // Retorna número de PCs armazenados
+    uint8_t getNumPCs();
+    // Guarda um PC
+    void pushPC(macAddr const& macInfo);
+    // Obtém o endereço MAC do PC de id "id"
+    macAddr const& getMACfromID(uint8_t id);
+    // Reseta memória (número de PCs)
+    void reset();
+
+};
+
+// Globais
+extern PCStorage pcStorage;
 
 //  LCD //
 #define RS 40

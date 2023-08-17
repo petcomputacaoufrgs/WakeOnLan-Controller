@@ -12,9 +12,6 @@
 
 #include "wol-controller.h"
 
-macAddr macAddrArray[MAX_CONNECTED_PCS];
-uint8_t managedPCs = 0;
-
 byte mac[] = {
     0xAA, 0xBB, 0xCC, 0x00, 0x11, 0x22
 };
@@ -41,11 +38,16 @@ uint8_t inputKeysPressed = 0;
 // LCD
 LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
 
+// Armazenamento de PCs
+PCStorage pcStorage;
 
 void setup()
 {
     // Inicialização do Serial
     Serial.begin(9600);
+
+    // Memória
+    pcStorage.begin();
 
     // Buzzer
     pinMode(audioPin, OUTPUT);
@@ -88,6 +90,7 @@ void setup()
 void loop(){
     static char key;
     static bool printMenu = true; // TO-DO: Encapsular esses comportamentos do LCD em classe?
+    static bool zeroPressed = false; // Tecla zero pressionada durante menu normal. Duas vezes faz com que a memória resete.
 
     key = keypad.getKey();
     if(key){
@@ -131,11 +134,13 @@ void loop(){
 
                 }
                 else{
+                    macAddr const& mac = pcStorage.getMACfromID(wakingID);
+
                     Serial.print("Acordando PC de ID ");
                     Serial.println(wakingID);
                     Serial.print("e MAC: ");
                     for(int i = 0; i < MAC_STRING_SIZE; i++){
-                        Serial.print(macAddrArray[wakingID].addr[i]);
+                        Serial.print(mac.addr[i]);
                     }
                     Serial.println();
 
@@ -143,7 +148,7 @@ void loop(){
                     lcd.print("OK");
                     lcd.setCursor(0, 1);
                     for(int i = 0; i < MAC_STRING_SIZE; i++){
-                        lcd.print(macAddrArray[wakingID].addr[i]);
+                        lcd.print(mac.addr[i]);
                     }
 
                     makeSound(SOUND_WAKING_PC);
@@ -208,6 +213,24 @@ void loop(){
                 printMenu = true;
                 serverModeStartTime = millis();
             }
+
+            // Apertar zero duas vezes reseta memória
+            if(key == '0'){
+                if(!zeroPressed){
+                    zeroPressed = true;
+                    return;
+                }
+
+                pcStorage.reset();
+                lcd.clear();
+                lcd.print("MEM RESET");
+                delay(1500);
+
+                zeroPressed = false;
+                printMenu = true;
+            
+            }
+
         }
     }
 
@@ -226,7 +249,7 @@ void loop(){
             lcd.print("* - WOL  # - GER");
             lcd.setCursor(0, 1);
             lcd.print("PCS: ");
-            lcd.print(managedPCs);
+            lcd.print(pcStorage.getNumPCs());
             printMenu = false;
         }
     }

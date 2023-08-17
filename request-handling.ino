@@ -38,16 +38,17 @@ void serveConnectedPCListsPage(EthernetClient& client){
     client.println("<html>");
     client.println("<h1> Controlador WakeOnLan </h1>");
     client.print("<br>PCs gerenciados: ");
-    client.print(managedPCs);
+    client.print(pcStorage.getNumPCs());
     client.print("/");
-    client.print(MAX_CONNECTED_PCS);
+    client.print(MAX_PCS);
 
     // Lista os computadores conectados
     // TO-DO: Essa lista tem que ser lida do SD
     client.print("<ol>");
     
-    for(int i=0; i < managedPCs; i++){
+    for(int i=0; i < pcStorage.getNumPCs(); i++){
         uint8_t readChars = 0;
+        macAddr const& mac = pcStorage.getMACfromID(i);
         client.print("<li>");
         for(int j=0; j < MAC_STRING_SIZE; j++){
             // : do MAC
@@ -55,7 +56,7 @@ void serveConnectedPCListsPage(EthernetClient& client){
                 client.print(':');
                 readChars = 1;
             }
-            client.print(macAddrArray[i].addr[j]);
+            client.print(mac.addr[j]);
         }
         client.print("</li>");
     }
@@ -131,20 +132,23 @@ bool addMACforMonitoring(EthernetClient& client){
         return false;
     }
 
-    // Armazena MAC e retorna verdadeiro
+    // Armazena MAC
+    macAddr newMAC;
+
     Serial.print("Novo MAC: ");
     for(int i=0; i < MAC_STRING_SIZE; i++){
         Serial.print(addrBuffer[i]);
-        macAddrArray[managedPCs].addr[i] = addrBuffer[i];
+        newMAC.addr[i] = addrBuffer[i];
     }
     Serial.println();
     for(int i=0, j=0; j<12; i++, j+=2){
-        macAddrArray[managedPCs].byte_addr[i] = ((char2hex(addrBuffer[j]) << 4) | char2hex(addrBuffer[j+1]));
+        newMAC.byte_addr[i] = ((char2hex(addrBuffer[j]) << 4) | char2hex(addrBuffer[j+1]));
     }
 
     Serial.println();
-    // Incrementa número de PCs
-    managedPCs++;
+    
+    pcStorage.pushPC(newMAC);
+
 
     return true;
 

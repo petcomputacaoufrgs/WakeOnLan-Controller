@@ -3,12 +3,12 @@
 bool wakeUpPC(uint8_t id){
     static const uint8_t broadcast[] = { 255, 255, 255, 255};
 
-    if(id > (managedPCs-1)){
+    if(id > (pcStorage.getNumPCs() - 1)){
         return false;
     }
 
     // Endereço MAC em bytes
-    uint8_t* mac = macAddrArray[id].byte_addr;
+    uint8_t* mac  = pcStorage.getMACfromID(id).byte_addr;
 
     // Pacote mágico
     uint8_t magicPacket[102];
