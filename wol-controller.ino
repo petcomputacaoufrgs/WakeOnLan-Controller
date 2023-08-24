@@ -93,73 +93,72 @@ void loop(){
     static bool zeroPressed = false; // Tecla zero pressionada durante menu normal. Duas vezes faz com que a memória resete.
 
     key = keypad.getKey();
-    if(key){
-        Serial.print("New key input: ");
-        Serial.println(key);
 
-        if(controllerMode == WAKING){
-            // Pressionar * novamente cancela.
-            if(key == '*'){
-                controllerMode = NONE;
-                Serial.println("Saíndo do modo WOL");
-                
-                lcd.clear();
-                
-                makeSound(SOUND_CANCEL);
+    if(controllerMode == WAKING){
+        // Pressionar * novamente cancela.
+        if(key == '*'){
+            controllerMode = NONE;
+            Serial.println("Saíndo do modo WOL");
+            
+            lcd.clear();
+            
+            makeSound(SOUND_CANCEL);
+            return;
+        }
+        // Pressionar # para acordar 
+        if((key == '#')){
+            // Faz nada se não há input
+            if(inputKeysPressed == 0){
                 return;
             }
-            // Pressionar # para acordar 
-            if((key == '#')){
-                // Faz nada se não há input
-                if(inputKeysPressed == 0){
-                  return;
-                }
 
-                uint8_t wakingID = atoi(inputString);
-                // Tentando acordar PC não gerenciado
-                if(!wakeUpPC(wakingID)){
-                    Serial.print("Nao ha PC de id ");
-                    Serial.println(wakingID);
+            uint8_t wakingID = atoi(inputString);
+            // Tentando acordar PC não gerenciado
+            if(!wakeUpPC(wakingID)){
+                Serial.print("Nao ha PC de id ");
+                Serial.println(wakingID);
 
-                    // Reseta input
-                    inputKeysPressed = 0;
-
-                    lcd.setCursor(0, 1);
-                    lcd.print("ID N REGISTRADO");
-
-                    lcd.setCursor(4, 0);
-                    lcd.print("  ");
-
-                    makeSound(SOUND_CANCEL);
-
-                }
-                else{
-                    macAddr const& mac = pcStorage.getMACfromID(wakingID);
-
-                    Serial.print("Acordando PC de ID ");
-                    Serial.println(wakingID);
-                    Serial.print("e MAC: ");
-                    for(int i = 0; i < MAC_STRING_SIZE; i++){
-                        Serial.print(mac.addr[i]);
-                    }
-                    Serial.println();
-
-                    lcd.setCursor(14, 0);
-                    lcd.print("OK");
-                    lcd.setCursor(0, 1);
-                    for(int i = 0; i < MAC_STRING_SIZE; i++){
-                        lcd.print(mac.addr[i]);
-                    }
-
-                    makeSound(SOUND_WAKING_PC);
-                }
+                // Reseta input
                 inputKeysPressed = 0;
-                inputString[0] = '0';
-                inputString[1] = '0';
 
+                lcd.setCursor(0, 1);
+                lcd.print("ID N REGISTRADO");
 
-                return;
+                lcd.setCursor(4, 0);
+                lcd.print("  ");
+
+                makeSound(SOUND_CANCEL);
+
             }
+            else{
+                macAddr const& mac = pcStorage.getMACfromID(wakingID);
+
+                Serial.print("Acordando PC de ID ");
+                Serial.println(wakingID);
+                Serial.print("e MAC: ");
+                for(int i = 0; i < MAC_STRING_SIZE; i++){
+                    Serial.print(mac.addr[i]);
+                }
+                Serial.println();
+
+                lcd.setCursor(14, 0);
+                lcd.print("OK");
+                lcd.setCursor(0, 1);
+                for(int i = 0; i < MAC_STRING_SIZE; i++){
+                    lcd.print(mac.addr[i]);
+                }
+
+                makeSound(SOUND_WAKING_PC);
+            }
+            inputKeysPressed = 0;
+            inputString[0] = '0';
+            inputString[1] = '0';
+
+
+            return;
+        }
+        
+        if(key){
             // Armazena inputs numéricos
             if(inputKeysPressed < 2){
                 
@@ -171,79 +170,75 @@ void loop(){
             }
             makeSound(SOUND_KEY_HIT);
 
-
         }
-        else if(controllerMode == SERVER){
-            // Pressionar # novamente ou timeout retorna ao modo normal
-             if((key == '#') || (millis() - serverModeStartTime < 60000)){
-                controllerMode = NONE;
-                Serial.println("Saindo do modo servidor");
-                lcd.clear();
-                makeSound(SOUND_SERVER_MODE_OFF);
+
+
+    }
+    else if(controllerMode == SERVER){
+        // Pressionar # novamente ou timeout retorna ao modo normal
+            if((key == '#') || ((millis() - serverModeStartTime) > 60000)){
+            controllerMode = NONE;
+            Serial.println("Saindo do modo servidor");
+            lcd.clear();
+            makeSound(SOUND_SERVER_MODE_OFF);
+            return;
+            }
+            EthernetClient client = server.available();
+            // Se há um cliente, lida com a comunicação com ele
+            if(client){
+                handleClient(client);
+            }
+    }
+    else{
+        // Entra no modo WakeOnLan
+        if(key == '*'){
+            makeSound(SOUND_WAKEONLAN_ON);
+            lcd.clear();
+            lcd.setCursor(0, 0);
+            lcd.print("WOL: ");
+            controllerMode = WAKING;
+            printMenu = true;
+            inputKeysPressed = 0;
+            return;
+        }
+
+        // Entra no modo servidor por um tempo
+        if(key == '#'){
+            makeSound(SOUND_SERVER_MODE_ON);
+            lcd.clear();
+            lcd.setCursor(0, 0);
+            lcd.print("SERVINDO PAG. EM:");
+            lcd.setCursor(0, 1);
+            lcd.print(Ethernet.localIP());
+            // for(int i = 0; i < 12; i++){
+            //   if((i > 0) && i % 3){
+            //     lcd.print('.');
+            //   }  
+            // }
+            Serial.println("Entrando em modo servidor por 1 minuto...");
+            controllerMode = SERVER;
+            printMenu = true;
+            serverModeStartTime = millis();
+            return;
+        }
+
+        // Apertar zero duas vezes reseta memória
+        if(key == '0'){
+            if(!zeroPressed){
+                zeroPressed = true;
                 return;
-             }
-        }
-        else{
-            // Entra no modo WakeOnLan
-            if(key == '*'){
-                makeSound(SOUND_WAKEONLAN_ON);
-                lcd.clear();
-                lcd.setCursor(0, 0);
-                lcd.print("WOL: ");
-                controllerMode = WAKING;
-                printMenu = true;
-                inputKeysPressed = 0;
             }
 
-            // Entra no modo servidor por um tempo
-            if(key == '#'){
-                makeSound(SOUND_SERVER_MODE_ON);
-                lcd.clear();
-                lcd.setCursor(0, 0);
-                lcd.print("SERVINDO PAG. EM:");
-                lcd.setCursor(0, 1);
-                lcd.print(Ethernet.localIP());
-                // for(int i = 0; i < 12; i++){
-                //   if((i > 0) && i % 3){
-                //     lcd.print('.');
-                //   }  
-                // }
-                Serial.println("Entrando em modo servidor por 1 minuto...");
-                controllerMode = SERVER;
-                printMenu = true;
-                serverModeStartTime = millis();
-            }
+            pcStorage.reset();
+            lcd.clear();
+            lcd.print("MEM RESET");
+            delay(1500);
 
-            // Apertar zero duas vezes reseta memória
-            if(key == '0'){
-                if(!zeroPressed){
-                    zeroPressed = true;
-                    return;
-                }
-
-                pcStorage.reset();
-                lcd.clear();
-                lcd.print("MEM RESET");
-                delay(1500);
-
-                zeroPressed = false;
-                printMenu = true;
-            
-            }
-
+            zeroPressed = false;
+            printMenu = true;
+        
         }
-    }
 
-
-    if(controllerMode == SERVER){
-        EthernetClient client = server.available();
-        // Se há um cliente, lida com a comunicação com ele
-        if(client){
-            handleClient(client);
-        }
-    }
-
-    if(controllerMode ==  NONE){
         if(printMenu == true){
             lcd.setCursor(0, 0);
             lcd.print("* - WOL  # - GER");
@@ -252,8 +247,12 @@ void loop(){
             lcd.print(pcStorage.getNumPCs());
             printMenu = false;
         }
+
     }
-        
+
+
+
+
 
 
 }
